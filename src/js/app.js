@@ -53,6 +53,11 @@ angular.module('blocktrail.wallet').run(
         $rootScope.bodyClass = [];
         $rootScope.bodyClassStr = "";
 
+        var image = new Image(1,1);
+        image.src = 'https://www.googleadservices.com/pagead/conversion/'+ CONFIG.GOOGLEADWORDS_ID +'/?label=' + CONFIG.GOOGLEADWORDS_LABEL + '&amp;guid=ON&amp;script=0';
+        // image.src = 'https://www.googleadservices.com/pagead/conversion/'+ CONFIG.GOOGLEADWORDS_ID +'/?label=' + CONFIG.GOOGLEADWORDS_LABEL + '&guid=ON&script=0';
+        document.body.appendChild(image);
+
         $rootScope.currencies = [
             {code: 'USD', symbol: '$'},
             {code: 'EUR', symbol: '€'},
