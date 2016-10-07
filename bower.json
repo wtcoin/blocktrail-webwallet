@@ -2,8 +2,8 @@
   "name": "blocktrail-wallet",
   "private": "true",
   "dependencies": {
-    "blocktrail-sdk": "2.1.0",
-    "pouchdb": "git@github.com:blocktrail/pouchdb.git#blocktrail",
+    "blocktrail-sdk": "git+https://github.com/blocktrail/blocktrail-sdk-nodejs.git#v3-crypto-build",
+    "pouchdb": "git+https://github.com/blocktrail/pouchdb.git#blocktrail",
     "q": "1.2.0",
     "angular-moment": "~0.10.0",
     "browserify-cryptojs": "~0.3.1",

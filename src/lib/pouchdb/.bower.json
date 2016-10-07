@@ -31,7 +31,7 @@
     "branch": "blocktrail",
     "commit": "01eb7fe14f10fbf00e3520df24cb9a52fe5a3966"
   },
-  "_source": "git@github.com:blocktrail/pouchdb.git",
+  "_source": "https://github.com/blocktrail/pouchdb.git",
   "_target": "blocktrail",
-  "_originalSource": "git@github.com:blocktrail/pouchdb.git"
+  "_originalSource": "git+https://github.com/blocktrail/pouchdb.git"
 }
