@@ -3,7 +3,8 @@ angular.module('blocktrail.wallet').factory(
     function(CONFIG, $log, $q, Wallet, dialogService, $translate, $http, $timeout, settingsService) {
         var clientId = "9074010d6e573bd7b06645735ba315c8";
         var clientSecret = "02cc9562bd2049b6fadb88578bc4c723";
-        var returnuri = "btccomwallet://glideraCallback";
+        var returnuri = "http://localhost:3000/%23/wallet/buy/glidera/oaoth2/callback";
+        // var returnuri = "http://localhost:3000/?glidera=oauth2";
 
         var decryptedAccessToken = null;
 
@@ -47,20 +48,20 @@ angular.module('blocktrail.wallet').factory(
                 'scope=' + scope,
                 'required_scope=' + scope,
                 'login_hint=' + (settingsService.email || "").replace(/\+.*@/, "@"), // name+label@mail.com isn't supported by glidera
-                'redirect_uri=' + returnuri + "/oauth2"
+                'redirect_uri=' + returnuri
             ];
 
             var glideraUrl = "https://sandbox.glidera.io/oauth2/auth?" + qs.join("&");
 
             $log.debug('oauth2', glideraUrl);
 
-            window.open(glideraUrl, '_system');
+            window.open(glideraUrl, '_self');
         };
 
         var setup = function() {
             return accessToken().then(function(accessToken) {
                 var qs = [
-                    'redirect_uri=' + returnuri + "/oauth2",
+                    'redirect_uri=' + returnuri,
                     'access_token=' + accessToken
                 ];
 
@@ -68,7 +69,7 @@ angular.module('blocktrail.wallet').factory(
 
                 $log.debug('setup', glideraUrl);
 
-                window.open(glideraUrl, '_system');
+                window.open(glideraUrl, '_self');
             });
         };
 
@@ -92,7 +93,7 @@ angular.module('blocktrail.wallet').factory(
                     return r.request('POST', '/oauth/token', {}, {
                         grant_type: "authorization_code",
                         code: qs.code,
-                        redirect_uri: returnuri + "/oauth2",
+                        redirect_uri: returnuri,
                         client_id: clientId,
                         client_secret: clientSecret
                     })
@@ -269,21 +270,17 @@ angular.module('blocktrail.wallet').factory(
 
                     var promptForPin = function() {
                         console.log('promptForPin');
-                        return $cordovaDialogs.prompt(
-                            $translate.instant('MSG_BUYBTC_PIN_TO_DECRYPT').sentenceCase(),
-                            $translate.instant('MSG_ENTER_PIN').sentenceCase(),
-                            [$translate.instant('OK'), $translate.instant('CANCEL').sentenceCase()],
-                            "",
-                            true,   //isPassword
-                            "tel"   //input type (uses html5 style)
-                        )
-                            .then(function(dialogResult) {
-                                console.log('dialogResult');
-                                if (dialogResult.buttonIndex == 2) {
-                                    return $q.reject('CANCELLED');
-                                }
 
-                                return dialogResult.input1;
+                        return dialogService.prompt({
+                            title: $translate.instant('MSG_BUYBTC_PIN_TO_DECRYPT').sentenceCase(),
+                            body: $translate.instant('MSG_ENTER_PIN').sentenceCase(),
+                            input_type: 'tel',
+                            icon: 'key'
+                        })
+                            .result
+                            .then(function(pin) {
+                                console.log('dialogResult');
+                                return pin;
                             }, function(err) {
                                 console.log('dialogErr ' + err);
                             });

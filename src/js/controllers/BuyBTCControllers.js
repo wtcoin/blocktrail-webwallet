@@ -39,8 +39,6 @@ angular.module('blocktrail.wallet')
                 $scope.brokers = brokers;
                 $scope.chooseRegion.regionOk = $scope.brokers.length;
 
-                $ionicScrollDelegate.scrollTop();
-
                 settingsService.$isLoaded().then(function() {
                     settingsService.buyBTCRegion = _.defaults({}, $scope.chooseRegion);
                     return settingsService.$store();
@@ -80,17 +78,16 @@ angular.module('blocktrail.wallet')
                             });
 
                         } else {
-                            return $cordovaDialogs.confirm(
-                                $translate.instant('MSG_BUYBTC_SETUP_GLIDERA_BODY').sentenceCase(),
-                                $translate.instant('MSG_BUYBTC_SETUP_GLIDERA_TITLE').sentenceCase(),
-                                [$translate.instant('OK'), $translate.instant('CANCEL').sentenceCase()]
-                            )
-                                .then(function(dialogResult) {
-                                    if (dialogResult == 2) {
-                                        return;
-                                    }
-
+                            return dialogService.prompt({
+                                body: $translate.instant('MSG_BUYBTC_SETUP_GLIDERA_BODY').sentenceCase(),
+                                title: $translate.instant('MSG_BUYBTC_SETUP_GLIDERA_TITLE').sentenceCase(),
+                                prompt: false
+                            })
+                                .result
+                                .then(function() {
                                     return glideraService.oauth2();
+                                }, function() {
+                                    // -
                                 })
                             ;
                         }
@@ -141,7 +138,8 @@ angular.module('blocktrail.wallet')
 
 angular.module('blocktrail.wallet')
     .controller('BuyBTCGlideraOauthCallbackCtrl', function($scope, $state, $rootScope, glideraService) {
-        glideraService.handleOauthCallback($rootScope.glideraCallback)
+
+        glideraService.handleOauthCallback(window.location.href)
             .then(function() {
                 return glideraService.userCanTransact().then(function(userCanTransact) {
                     if (userCanTransact) {

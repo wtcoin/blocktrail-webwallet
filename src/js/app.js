@@ -498,6 +498,21 @@ if (!window.repeat) {
     };
 }
 
+function parseQuery(url) {
+    url = (url || "").split("?");
+    if (url.length < 2) {
+        return {};
+    }
+    var qstr = url[1];
+    var query = {};
+    var a = qstr.split('&');
+    for (var i = 0; i < a.length; i++) {
+        var b = a[i].split('=');
+        query[decodeURIComponent(b[0])] = decodeURIComponent(b[1] || '');
+    }
+    return query;
+}
+
 /**
  * use promises to loop over a `list` of items and execute `fn`
  * with a trailing window of `n` items to avoid blocking

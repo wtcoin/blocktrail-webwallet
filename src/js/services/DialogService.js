@@ -111,6 +111,10 @@ angular.module('blocktrail.wallet').factory(
                 }
             }
 
+            if (typeof message.prompt === "undefined") {
+                message.prompt = true;
+            }
+
             var defaultBackdrop = message.cancel === false || message.ok === false ? 'static' : true;
 
             var modalInstance = $modal.open({
