@@ -8317,16 +8317,19 @@ function mnemonicToSeedHex(mnemonic, password) {
 }
 
 function mnemonicToEntropy(mnemonic, wordlist) {
+  console.log('---- mnemonicToEntropy ----');
   wordlist = wordlist || DEFAULT_WORDLIST
 
   var words = mnemonic.split(' ')
-  assert(words.length % 3 === 0, 'Invalid mnemonic')
+  // console.log('words: \n' + words);
+  // console.log('words.length: ' + words.length);
+  assert(words.length % 3 === 0, 'Invalid mnemonic (mod3)')
 
   var belongToList = words.every(function(word) {
     return wordlist.indexOf(word) > -1
   })
 
-  assert(belongToList, 'Invalid mnemonic')
+  assert(belongToList, 'Invalid mnemonic (belongToList)')
 
   // convert word indices to 11 bit binary strings
   var bits = words.map(function(word) {
@@ -8339,12 +8342,33 @@ function mnemonicToEntropy(mnemonic, wordlist) {
   var entropy = bits.slice(0, dividerIndex)
   var checksum = bits.slice(dividerIndex)
 
+  // console.log('bits: \n' + bits.match(/(.{1,80})/g).join("\n"));
+  console.log('bits.length: ' + bits.length);
+  // console.log('entropyBits: \n' + entropy.match(/(.{1,80})/g).join("\n"));
+  console.log('entropyBits.length: ' + entropy.length);
+  console.log('checksum: \n' + checksum.match(/(.{1,80})/g).join("\n"));
+  console.log('checksum.length: ' + checksum.length);
+
   // calculate the checksum and compare
   var entropyBytes = entropy.match(/(.{1,8})/g).map(function(bin) {
     return parseInt(bin, 2)
   })
   var entropyBuffer = new Buffer(entropyBytes)
+  // console.log('entropyBits: ' +  bytesToBinary([].slice.call(entropyBuffer)).match(/(.{1,80})/g).join("\n"));
   var newChecksum = checksumBits(entropyBuffer)
+  console.log('newChecksum: \n' + newChecksum.match(/(.{1,80})/g).join("\n"));
+  console.log('newChecksum.length: ' + newChecksum.length);
+
+  // console.log('bits: \n' + bits.match(/(.{1,80})/g).join("\n"));
+  console.log('bits.length: ' + bits.length);
+
+  // recreate properly chunked and padded bits to get the properly padded checksum
+  var bits2 = (entropy + newChecksum).match(/(.{1,11})/g).map(function(index) {
+    return lpad(index, '0', 11)
+
+  }).join('')
+  var dividerIndex2 = Math.floor(bits2.length / 33) * 32
+  var newChecksum2 = bits.slice(dividerIndex2)
 
   assert(newChecksum === checksum, 'Invalid mnemonic checksum')
 
@@ -8358,7 +8382,15 @@ function entropyToMnemonic(entropy, wordlist) {
   var entropyBits = bytesToBinary([].slice.call(entropyBuffer))
   var checksum = checksumBits(entropyBuffer)
 
+  console.log('---- entropyToMnemonic ----');
+  // console.log('entropyBits: \n' + entropyBits.match(/(.{1,80})/g).join("\n"));
+  console.log('entropyBits.length: ' + entropyBits.length);
+  console.log('checksum: \n' + checksum.match(/(.{1,80})/g).join("\n"));
+  console.log('checksum.length: ' + checksum.length);
+
   var bits = entropyBits + checksum
+  // console.log('bits: \n' + bits.match(/(.{1,80})/g).join("\n"));
+  console.log('bits.length: ' + bits.length);
   var chunks = bits.match(/(.{1,11})/g)
 
   var words = chunks.map(function(binary) {
