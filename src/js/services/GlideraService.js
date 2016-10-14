@@ -1,12 +1,15 @@
 angular.module('blocktrail.wallet').factory(
     'glideraService',
-    function(CONFIG, $log, $q, Wallet, dialogService, $translate, $http, $timeout, settingsService) {
+    function(CONFIG, $log, $q, Wallet, dialogService, $translate, $http, $timeout, settingsService, launchService) {
         var clientId = "9074010d6e573bd7b06645735ba315c8";
         var clientSecret = "02cc9562bd2049b6fadb88578bc4c723";
-        var returnuri = "http://localhost:3000/%23/wallet/buy/glidera/oaoth2/callback";
+        var returnuri = "http://localhost:3000/#/wallet/buy/glidera/oaoth2/callback";
         // var returnuri = "http://localhost:3000/?glidera=oauth2";
-
         var decryptedAccessToken = null;
+
+        var encodeOpenURI = function(uri) {
+            return uri.replace('#', '%23');
+        };
 
         var setDecryptedAccessToken = function(accessToken) {
             decryptedAccessToken = accessToken;
@@ -55,7 +58,7 @@ angular.module('blocktrail.wallet').factory(
 
             $log.debug('oauth2', glideraUrl);
 
-            window.open(glideraUrl, '_self');
+            window.open(encodeOpenURI(glideraUrl), '_self');
         };
 
         var setup = function() {
@@ -69,7 +72,7 @@ angular.module('blocktrail.wallet').factory(
 
                 $log.debug('setup', glideraUrl);
 
-                window.open(glideraUrl, '_self');
+                window.open(encodeOpenURI(glideraUrl), '_self');
             });
         };
 
@@ -77,6 +80,8 @@ angular.module('blocktrail.wallet').factory(
             if (!glideraCallback) {
                 return $q.reject(new Error("no glideraCallback"));
             }
+
+            var spinner;
 
             return $q.when(glideraCallback)
                 .then(function(glideraCallback) {
@@ -88,12 +93,14 @@ angular.module('blocktrail.wallet').factory(
                         throw new Error(qs.error_message.replace("+", " "));
                     }
 
+                    spinner = dialogService.spinner({title: 'WORKING'});
+
                     var r = createRequest();
 
                     return r.request('POST', '/oauth/token', {}, {
                         grant_type: "authorization_code",
                         code: qs.code,
-                        redirect_uri: returnuri,
+                        redirect_uri: encodeURI(returnuri),
                         client_id: clientId,
                         client_secret: clientSecret
                     })
@@ -106,54 +113,23 @@ angular.module('blocktrail.wallet').factory(
                             };
 
                             return settingsService.$isLoaded().then(function() {
-                                return $cordovaDialogs.prompt(
-                                        $translate.instant('MSG_BUYBTC_PIN_TO_ENCRYPT').sentenceCase(),
-                                        $translate.instant('MSG_ENTER_PIN').sentenceCase(),
-                                        [$translate.instant('OK'), $translate.instant('CANCEL').sentenceCase()],
-                                        "",
-                                        true,   //isPassword
-                                        "tel"   //input type (uses html5 style)
-                                    );
+                                return launchService.getAccountInfo().then(function(accountInfo) {
+                                    glideraAccessToken.encryptedWith = 'secret';
+                                    glideraAccessToken.encryptedAccessToken = CryptoJS.AES.encrypt(accessToken, accountInfo.secret).toString();
                                 })
-                                    .then(function(dialogResult) {
-                                        if (dialogResult.buttonIndex == 2) {
-                                            return $q.reject('CANCELLED');
-                                        }
-                                        //decrypt password with the provided PIN
-                                        // $ionicLoading.show();
-
-                                        return Wallet.unlockData(dialogResult.input1).then(function(unlockData) {
-
-                                            // still gotta support legacy wallet where we encrypted the password instead of secret
-                                            if (unlockData.secret) {
-                                                glideraAccessToken.encryptedWith = 'secret';
-                                                glideraAccessToken.encryptedAccessToken = CryptoJS.AES.encrypt(accessToken, unlockData.secret).toString();
-                                            } else {
-                                                glideraAccessToken.encryptedWith = 'password';
-                                                glideraAccessToken.encryptedAccessToken = CryptoJS.AES.encrypt(accessToken, unlockData.password).toString();
-                                            }
-                                        })
-                                    })
                                     .then(function() {
                                         setDecryptedAccessToken(accessToken);
                                         settingsService.glideraAccessToken = glideraAccessToken;
 
                                         return settingsService.$store().then(function() {
-                                            $log.debug('SAVED');
                                             return settingsService.$syncSettingsUp();
                                         });
                                     })
-                                    .then(function() {
-                                        // $ionicLoading.hide();
-                                    }, function(err) {
-                                        // $ionicLoading.hide();
-                                        throw err;
-                                    })
                                 ;
                             })
-                        ;
-                    })
-                .then(function(result) { return result }, function(err) { $log.log(err); throw err; })
+                        })
+                })
+                .then(function(result) { spinner.close(); return result; }, function(err) { if(spinner) { spinner.close(); } $log.log(err); throw err; })
             ;
         };
 
@@ -199,21 +175,13 @@ angular.module('blocktrail.wallet').factory(
                 if (twoFactorMode === "NONE") {
                     return;
                 } else {
-                    return $cordovaDialogs.prompt(
-                        $translate.instant('MSG_BUYBTC_GLIDERA_2FA_BODY', {
+                    return dialogService.prompt({
+                        body: $translate.instant('MSG_BUYBTC_GLIDERA_2FA_BODY', {
                             mode: twoFactorMode
                         }).sentenceCase(),
-                        $translate.instant('MSG_BUYBTC_GLIDERA_2FA_TITLE').sentenceCase(),
-                        [$translate.instant('OK'), $translate.instant('CANCEL').sentenceCase()],
-                        ""
-                    )
-                    .then(function(dialogResult) {
-                        if (dialogResult.buttonIndex == 2) {
-                            return $q.reject('CANCELLED');
-                        }
-
-                        return dialogResult.input1;
-                    });
+                        title: $translate.instant('MSG_BUYBTC_GLIDERA_2FA_TITLE').sentenceCase()
+                    })
+                    .result;
                 }
             });
         };
@@ -268,57 +236,15 @@ angular.module('blocktrail.wallet').factory(
                         return;
                     }
 
-                    var promptForPin = function() {
-                        console.log('promptForPin');
-
-                        return dialogService.prompt({
-                            title: $translate.instant('MSG_BUYBTC_PIN_TO_DECRYPT').sentenceCase(),
-                            body: $translate.instant('MSG_ENTER_PIN').sentenceCase(),
-                            input_type: 'tel',
-                            icon: 'key'
-                        })
-                            .result
-                            .then(function(pin) {
-                                console.log('dialogResult');
-                                return pin;
-                            }, function(err) {
-                                console.log('dialogErr ' + err);
-                            });
-                    };
-
                     var decryptAccessToken = function() {
                         console.log('decryptAccessToken');
-                        return promptForPin().then(function(pin) {
-                            console.log('pin');
-                            //decrypt password with the provided PIN
-                            // $ionicLoading.show();
+                        return launchService.getAccountInfo().then(function(accountInfo) {
+                            var accessToken = CryptoJS.AES.decrypt(encryptedAccessToken, accountInfo.secret).toString(CryptoJS.enc.Utf8);
 
-                            return Wallet.unlockData(pin).then(function(unlockData) {
-                                console.log('unlockData');
-                                // still gotta support legacy wallet where we encrypted the password instead of secret
-                                var accessToken;
-                                if (unlockData.secret) {
-                                    accessToken = CryptoJS.AES.decrypt(encryptedAccessToken, unlockData.secret).toString(CryptoJS.enc.Utf8);
-                                } else {
-                                    accessToken = CryptoJS.AES.decrypt(encryptedAccessToken, unlockData.password).toString(CryptoJS.enc.Utf8);
-                                }
+                            setDecryptedAccessToken(accessToken);
 
-                                setDecryptedAccessToken(accessToken);
-
-                                return accessToken;
-                            }, function(err) {
-                                console.log('decryptAccessToken AGAIN');
-                                return decryptAccessToken();
-                            })
-                                .then(function(r) {
-                                    // $ionicLoading.hide();
-                                    return r;
-                                }, function(err) {
-                                    // $ionicLoading.hide();
-                                    throw err;
-                                })
-                            ;
-                        })
+                            return accessToken;
+                        });
                     };
 
                     return decryptAccessToken();
@@ -339,6 +265,7 @@ angular.module('blocktrail.wallet').factory(
         };
 
         var buyPrices = function(qty, fiat) {
+            $log.debug('buyPrices', qty, fiat);
             return userCanTransact().then(function(userCanTransact) {
                 if (!userCanTransact) {
                     throw new Error("User can't transact!");
