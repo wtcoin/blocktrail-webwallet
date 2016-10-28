@@ -19,7 +19,9 @@ angular.module('blocktrail.wallet')
         storageService.resetAll().then(
             function() {
                 window.location.replace('/#/setup/login');
-                window.location.reload(true);
+                setTimeout(function() {
+                    window.location.reload(true);
+                }, 50);
             }
         );
     });

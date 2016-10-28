@@ -4,7 +4,6 @@ angular.module('blocktrail.wallet').factory(
         var clientId = "9074010d6e573bd7b06645735ba315c8";
         var clientSecret = "02cc9562bd2049b6fadb88578bc4c723";
         var returnuri = "http://localhost:3000/#/wallet/buy/glidera/oaoth2/callback";
-        // var returnuri = "http://localhost:3000/?glidera=oauth2";
         var decryptedAccessToken = null;
 
         var encodeOpenURI = function(uri) {
