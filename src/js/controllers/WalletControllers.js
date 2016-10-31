@@ -14,7 +14,7 @@ angular.module('blocktrail.wallet')
         * check for extra languages to enable
         *  if one is preferred, prompt user to switch
         */
-       $http.get(CONFIG.API_URL + "/v1/" + (CONFIG.TESTNET ? "tBTC" : "BTC") + "/mywallet/config?v=" + CONFIG.VERSION)
+       $rootScope.fetchExtraLanguages = $http.get(CONFIG.API_URL + "/v1/" + (CONFIG.TESTNET ? "tBTC" : "BTC") + "/mywallet/config?v=" + CONFIG.VERSION)
            .then(function(result) {
                return result.data.extraLanguages;
            })
