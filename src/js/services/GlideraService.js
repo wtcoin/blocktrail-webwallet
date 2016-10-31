@@ -1,8 +1,7 @@
 angular.module('blocktrail.wallet').factory(
     'glideraService',
-    function(CONFIG, $log, $q, Wallet, dialogService, $translate, $http, $timeout, settingsService, launchService) {
-        var clientId = "9074010d6e573bd7b06645735ba315c8";
-        var clientSecret = "02cc9562bd2049b6fadb88578bc4c723";
+    function(CONFIG, $log, $q, Wallet, dialogService, $translate, $http, $timeout, settingsService, launchService, sdkService) {
+        var clientId;
         var returnuri = "http://localhost:3000/#/wallet/buy/glidera/oaoth2/callback";
         var decryptedAccessToken = null;
 
@@ -94,39 +93,34 @@ angular.module('blocktrail.wallet').factory(
 
                     spinner = dialogService.spinner({title: 'WORKING'});
 
-                    var r = createRequest();
+                    return sdkService.sdk().then(function(sdk) {
+                        return sdk.glideraOauth(qs.code, returnuri, true)
+                            .then(function(result) {
+                                $log.debug('oauthtoken', JSON.stringify(result, null, 4));
 
-                    return r.request('POST', '/oauth/token', {}, {
-                        grant_type: "authorization_code",
-                        code: qs.code,
-                        redirect_uri: encodeURI(returnuri),
-                        client_id: clientId,
-                        client_secret: clientSecret
-                    })
-                        .then(function(result) {
-                            $log.debug('oauthtoken', JSON.stringify(result, null, 4));
+                                var accessToken = result.access_token;
+                                var glideraAccessToken = {
+                                    scope: result.scope
+                                };
 
-                            var accessToken = result.access_token;
-                            var glideraAccessToken = {
-                                scope: result.scope
-                            };
-
-                            return settingsService.$isLoaded().then(function() {
-                                return launchService.getAccountInfo().then(function(accountInfo) {
-                                    glideraAccessToken.encryptedWith = 'secret';
-                                    glideraAccessToken.encryptedAccessToken = CryptoJS.AES.encrypt(accessToken, accountInfo.secret).toString();
-                                })
-                                    .then(function() {
-                                        setDecryptedAccessToken(accessToken);
-                                        settingsService.glideraAccessToken = glideraAccessToken;
-
-                                        return settingsService.$store().then(function() {
-                                            return settingsService.$syncSettingsUp();
-                                        });
+                                return settingsService.$isLoaded().then(function() {
+                                    return launchService.getAccountInfo().then(function(accountInfo) {
+                                        glideraAccessToken.encryptedWith = 'secret';
+                                        glideraAccessToken.encryptedAccessToken = CryptoJS.AES.encrypt(accessToken, accountInfo.secret).toString();
                                     })
-                                ;
+                                        .then(function() {
+                                            setDecryptedAccessToken(accessToken);
+                                            settingsService.glideraAccessToken = glideraAccessToken;
+
+                                            return settingsService.$store().then(function() {
+                                                return settingsService.$syncSettingsUp();
+                                            });
+                                        })
+                                        ;
+                                })
                             })
-                        })
+                        ;
+                    });
                 })
                 .then(function(result) { spinner.close(); return result; }, function(err) { if(spinner) { spinner.close(); } $log.log(err); throw err; })
             ;
@@ -316,7 +310,12 @@ angular.module('blocktrail.wallet').factory(
             });
         };
 
+        var setClientId = function(_clientId) {
+            clientId = _clientId;
+        };
+
         return {
+            setClientId: setClientId,
             createRequest: createRequest,
             oauth2: oauth2,
             setup: setup,
