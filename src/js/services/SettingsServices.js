@@ -19,6 +19,7 @@ angular.module('blocktrail.wallet').service('settingsService', function($q, stor
 
         glideraRequest: null,
         glideraAccessToken: null,
+        glideraTransactions: [],
 
         buyBTCRegion: null
     };

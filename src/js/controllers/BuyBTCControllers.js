@@ -277,6 +277,7 @@ angular.module('blocktrail.wallet')
          * init buy getting an access token, repeat until we have an access token
          *  then update main price and set interval for updating price
          */
+        var pollInterval;
         var init = function() {
             return glideraService.accessToken()
                 .then(function(accessToken) {
@@ -290,7 +291,7 @@ angular.module('blocktrail.wallet')
                     $scope.initializing = false;
 
                     // update every minute
-                    $interval(function() {
+                    pollInterval = $interval(function() {
                         // update main price
                         updateMainPrice();
                         // update input price
@@ -301,6 +302,12 @@ angular.module('blocktrail.wallet')
                 })
             ;
         };
+
+        $scope.$on('$destroy', function() {
+            if (pollInterval) {
+                $interval.cancel(pollInterval);
+            }
+        });
 
         $timeout(function() {
             init();

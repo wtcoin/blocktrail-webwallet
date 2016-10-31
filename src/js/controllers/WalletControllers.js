@@ -1,7 +1,7 @@
 angular.module('blocktrail.wallet')
-   .controller('WalletCtrl', function($q, $log, $scope, $state, $rootScope, $interval, storageService, sdkService, Wallet,
-                                      Contacts, CONFIG, settingsService, $timeout, launchService, blocktrailLocalisation,
-                                      dialogService, $http, $translate) {
+    .controller('WalletCtrl', function($q, $log, $scope, $state, $rootScope, $interval, storageService, sdkService, Wallet,
+                                       Contacts, CONFIG, settingsService, $timeout, launchService, blocktrailLocalisation,
+                                       dialogService, $http, $translate) {
 
         $timeout(function() {
             $rootScope.hideLoadingScreen = true;
@@ -10,68 +10,80 @@ angular.module('blocktrail.wallet')
             Wallet.disablePolling();
         }
 
-       /*
-        * check for extra languages to enable
-        *  if one is preferred, prompt user to switch
-        */
-       $rootScope.fetchExtraLanguages = $http.get(CONFIG.API_URL + "/v1/" + (CONFIG.TESTNET ? "tBTC" : "BTC") + "/mywallet/config?v=" + CONFIG.VERSION)
-           .then(function(result) {
-               return result.data.extraLanguages;
-           })
-           .then(function(extraLanguages) {
-               return settingsService.$isLoaded().then(function() {
-                   // filter out languages we already know
-                   var knownLanguages = blocktrailLocalisation.getLanguages();
-                   extraLanguages = extraLanguages.filter(function(language) {
-                       return knownLanguages.indexOf(language) === -1;
-                   });
+        $scope.$on('glidera_complete', function(event, transaction) {
+            dialogService.alert({
+                body: $translate.instant('MSG_BUYBTC_GLIDERA_COMPLETE_BODY', {
+                    qty: transaction.qty
+                }),
+                title: 'MSG_BUYBTC_GLIDERA_COMPLETE'
+            })
+        });
 
-                   if (extraLanguages.length === 0) {
-                       return;
-                   }
+        /*
+         * check for extra languages to enable
+         *  if one is preferred, prompt user to switch
+         */
+        $rootScope.fetchExtraLanguages = $http.get(CONFIG.API_URL + "/v1/" + (CONFIG.TESTNET ? "tBTC" : "BTC") + "/mywallet/config?v=" + CONFIG.VERSION)
+            .then(function(result) {
+                return result.data.extraLanguages;
+            })
+            .then(function(extraLanguages) {
+                return settingsService.$isLoaded().then(function() {
+                    // filter out languages we already know
+                    var knownLanguages = blocktrailLocalisation.getLanguages();
+                    extraLanguages = extraLanguages.filter(function(language) {
+                        return knownLanguages.indexOf(language) === -1;
+                    });
 
-                   // enable extra languages
-                   _.each(extraLanguages, function(extraLanguage) {
-                       blocktrailLocalisation.enableLanguage(extraLanguage, {});
-                   });
+                    if (extraLanguages.length === 0) {
+                        return;
+                    }
 
-                   // determine (new) preferred language
-                   var preferredLanguage = blocktrailLocalisation.setupPreferredLanguage();
+                    // enable extra languages
+                    _.each(extraLanguages, function(extraLanguage) {
+                        blocktrailLocalisation.enableLanguage(extraLanguage, {});
+                    });
 
-                   // store extra languages
-                   settingsService.extraLanguages = settingsService.extraLanguages.concat(extraLanguages).unique();
+                    // determine (new) preferred language
+                    var preferredLanguage = blocktrailLocalisation.setupPreferredLanguage();
 
-                   return settingsService.$store()
-                       .then(function() {
-                           // check if we have a new preferred language
-                           if (preferredLanguage != settingsService.language && extraLanguages.indexOf(preferredLanguage) !== -1) {
-                               // prompt to enable
-                               return dialogService.prompt({
-                                   body: $translate.instant('MSG_BETTER_LANGUAGE', {
-                                       oldLanguage: $translate.instant(blocktrailLocalisation.languageName(settingsService.language)),
-                                       newLanguage: $translate.instant(blocktrailLocalisation.languageName(preferredLanguage))
-                                   }).sentenceCase(),
-                                   title: $translate.instant('MSG_BETTER_LANGUAGE_TITLE').sentenceCase(),
-                                   prompt: false
+                    // store extra languages
+                    settingsService.extraLanguages = settingsService.extraLanguages.concat(extraLanguages).unique();
+
+                    return settingsService.$store()
+                        .then(function() {
+                            // check if we have a new preferred language
+                            if (preferredLanguage != settingsService.language && extraLanguages.indexOf(preferredLanguage) !== -1) {
+                                // prompt to enable
+                                return dialogService.prompt({
+                                    body: $translate.instant('MSG_BETTER_LANGUAGE', {
+                                        oldLanguage: $translate.instant(blocktrailLocalisation.languageName(settingsService.language)),
+                                        newLanguage: $translate.instant(blocktrailLocalisation.languageName(preferredLanguage))
+                                    }).sentenceCase(),
+                                    title: $translate.instant('MSG_BETTER_LANGUAGE_TITLE').sentenceCase(),
+                                    prompt: false
                                 })
-                                   .result
-                                   .then(function() {
-                                       // enable new language
-                                       settingsService.language = preferredLanguage;
-                                       $rootScope.changeLanguage(preferredLanguage);
+                                    .result
+                                    .then(function() {
+                                        // enable new language
+                                        settingsService.language = preferredLanguage;
+                                        $rootScope.changeLanguage(preferredLanguage);
 
-                                       return settingsService.$store();
-                                   })
-                               ;
-                           }
-                       })
-                       ;
-               });
-           })
-           .then(function() {}, function(e) { console.error('extraLanguages', e && (e.msg || e.message || "" + e)); });
+                                        return settingsService.$store();
+                                    })
+                                    ;
+                            }
+                        })
+                        ;
+                });
+            })
+            .then(function() {
+            }, function(e) {
+                console.error('extraLanguages', e && (e.msg || e.message || "" + e));
+            });
 
 
-       $rootScope.getPrice = function() {
+        $rootScope.getPrice = function() {
             //get a live prices update
             return $q.when(Wallet.price(false).then(function(data) {
                 return $rootScope.bitcoinPrices = data;
@@ -117,9 +129,15 @@ angular.module('blocktrail.wallet')
         };
 
         // do initial updates then poll for changes, all with small offsets to reducing blocking / slowing down of rendering
-        $timeout(function() { $rootScope.syncContacts(); }, 500);
-        $timeout(function() { $rootScope.getPrice(); }, 1000);
-        $timeout(function() { $rootScope.syncProfile(); }, 2000);
+        $timeout(function() {
+            $rootScope.syncContacts();
+        }, 500);
+        $timeout(function() {
+            $rootScope.getPrice();
+        }, 1000);
+        $timeout(function() {
+            $rootScope.syncProfile();
+        }, 2000);
 
         var pricePolling = $interval(function() {
             $rootScope.getPrice();
@@ -140,6 +158,10 @@ angular.module('blocktrail.wallet')
         var profileSyncPolling = $interval(function() {
             $rootScope.syncProfile();
         }, 301500); // 5 min + slight offset not to collide
+
+        var settingsSyncPolling = $interval(function() {
+            settingsService.$syncSettingsDown();
+        }, 302000); // 5 min + slight offset not to collide
     }
 );
 
@@ -147,11 +169,11 @@ angular.module('blocktrail.wallet')
     .controller('WalletSummaryCtrl', function($scope, $rootScope, $state, $log, $filter, $http, $q, $timeout, Wallet, $translate, $modal, CONFIG) {
         $rootScope.pageTitle = 'TRANSACTIONS';
         // update balance from cache
-        $scope.transactionsList         = [];   //original list of transactions
-        $scope.transactionsDisplayList  = [];    //transactions with "date headers" inserted
-        $scope.isFirstLoad              = true;
-        $scope.canLoadMoreTransactions  = true;
-        $scope.loading                  = false;
+        $scope.transactionsList = [];   //original list of transactions
+        $scope.transactionsDisplayList = [];    //transactions with "date headers" inserted
+        $scope.isFirstLoad = true;
+        $scope.canLoadMoreTransactions = true;
+        $scope.loading = false;
         $scope.paginationOptions = {
             from: 0,
             limit: 15
@@ -227,7 +249,7 @@ angular.module('blocktrail.wallet')
                 var date = null;
 
                 if (transaction.hash) {
-                    date = new Date(transaction.time*1000);
+                    date = new Date(transaction.time * 1000);
                     date.setHours(0);
                     date.setMinutes(0);
                     date.setSeconds(0);
@@ -241,6 +263,12 @@ angular.module('blocktrail.wallet')
                         groupedList.push(headerObj);
                     }
 
+                    if (!transaction.contact && transaction.buybtc) {
+                        transaction.contact = {
+                            displayName: transaction.buybtc.broker.sentenceCase()
+                        }
+                    }
+
                     //add a contact token
                     if (transaction.contact) {
                         if (!transaction.contact.lastName && transaction.contact.firstName) {
@@ -249,6 +277,8 @@ angular.module('blocktrail.wallet')
                             transaction.contactInitials = transaction.contact.lastName.substr(0, 2);
                         } else if (transaction.contact.firstName && transaction.contact.lastName) {
                             transaction.contactInitials = transaction.contact.firstName.substr(0, 1) + transaction.contact.lastName.substr(0, 1);
+                        } else if (transaction.contact.displayName) {
+                            transaction.contactInitials = transaction.contact.displayName.substr(0, 2);
                         }
                     }
 
