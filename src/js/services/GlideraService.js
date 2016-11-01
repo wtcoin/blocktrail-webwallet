@@ -2,7 +2,8 @@ angular.module('blocktrail.wallet').factory(
     'glideraService',
     function(CONFIG, $log, $q, Wallet, dialogService, $rootScope, $translate, $http, $timeout, $interval, settingsService, launchService, sdkService) {
         var clientId;
-        var returnuri = "http://localhost:3000/#/wallet/buy/glidera/oaoth2/callback";
+        var returnuri = CONFIG.WALLET_URL + "/#/wallet/buy/glidera/oaoth2/callback";
+        var SANDBOX = CONFIG.GLIDERA_URL.indexOf('sandbox.') !== -1;
         var decryptedAccessToken = null;
 
         var encodeOpenURI = function(uri) {
@@ -29,7 +30,7 @@ angular.module('blocktrail.wallet').factory(
 
             options = _.defaults({}, (options || {}), {
                 https: true,
-                host: 'sandbox.glidera.io',
+                host: CONFIG.GLIDERA_URL.replace(/https?:\/\//, ''),
                 endpoint: '/api/v1',
                 params: {},
                 headers: _.defaults({}, (options.headers || {}), headers),
@@ -52,7 +53,7 @@ angular.module('blocktrail.wallet').factory(
                 'redirect_uri=' + returnuri
             ];
 
-            var glideraUrl = "https://sandbox.glidera.io/oauth2/auth?" + qs.join("&");
+            var glideraUrl = CONFIG.GLIDERA_URL + "/oauth2/auth?" + qs.join("&");
 
             $log.debug('oauth2', glideraUrl);
 
@@ -66,7 +67,7 @@ angular.module('blocktrail.wallet').factory(
                     'access_token=' + accessToken
                 ];
 
-                var glideraUrl = "https://sandbox.glidera.io/user/setup?" + qs.join("&");
+                var glideraUrl = CONFIG.GLIDERA_URL + "/user/setup?" + qs.join("&");
 
                 $log.debug('setup', glideraUrl);
 
@@ -94,7 +95,7 @@ angular.module('blocktrail.wallet').factory(
                     spinner = dialogService.spinner({title: 'WORKING'});
 
                     return sdkService.sdk().then(function(sdk) {
-                        return sdk.glideraOauth(qs.code, returnuri, true)
+                        return sdk.glideraOauth(qs.code, returnuri, SANDBOX)
                             .then(function(result) {
                                 $log.debug('oauthtoken', JSON.stringify(result, null, 4));
 
