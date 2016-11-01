@@ -20,7 +20,6 @@
             <div class="value">
                 {{ data.buybtc.qty }} BTC at {{ data.buybtc.price }} {{ data.buybtc.currency }} per BTC.
             </div>
-
         </div>
 
         <div class="amount" ng-class="{received: data.wallet_value_change > 0, sent: data.wallet_value_change <= 0}">
@@ -53,7 +52,7 @@
             </div>
         </div>
 
-        <div class="contact">
+        <div class="contact" ng-if="!data.buybtc">
             <div class="label capitalise">
                 <span ng-if="data.wallet_value_change <= 0">{{ 'TX_INFO_SENT_TO' | translate }}</span>
                 <span ng-if="data.wallet_value_change > 0">{{ 'TX_INFO_RECEIVED_FROM' | translate }}</span>

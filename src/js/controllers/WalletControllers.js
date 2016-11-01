@@ -1,7 +1,7 @@
 angular.module('blocktrail.wallet')
     .controller('WalletCtrl', function($q, $log, $scope, $state, $rootScope, $interval, storageService, sdkService, Wallet,
                                        Contacts, CONFIG, settingsService, $timeout, launchService, blocktrailLocalisation,
-                                       dialogService, $http, $translate) {
+                                       dialogService, $http, $translate, buyBTCService) {
 
         $timeout(function() {
             $rootScope.hideLoadingScreen = true;
@@ -159,6 +159,7 @@ angular.module('blocktrail.wallet')
             $rootScope.syncProfile();
         }, 301500); // 5 min + slight offset not to collide
 
+        settingsService.$syncSettingsDown();
         var settingsSyncPolling = $interval(function() {
             settingsService.$syncSettingsDown();
         }, 302000); // 5 min + slight offset not to collide

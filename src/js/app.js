@@ -45,10 +45,7 @@ angular.module('blocktrail.wallet').config(function() {
 });
 
 angular.module('blocktrail.wallet').run(
-    /*
-     * @param buyBTCService unused but here to initialize it
-     */
-    function($rootScope, $state, $log, $interval, $timeout, settingsService, CONFIG, $locale, $translate, amMoment, buyBTCService) {
+    function($rootScope, $state, $log, $interval, $timeout, settingsService, CONFIG, $locale, $translate, amMoment) {
         $rootScope.CONFIG       = CONFIG || {};
         $rootScope.$state       = $state;
         $rootScope.appVersion   = CONFIG.VERSION;
@@ -599,10 +596,6 @@ window.QforEachLimit = function(list, n, fn) {
     })();
 };
 
-/**
- * use promises to loop over a `list` of items and execute `fn`
- * with a trailing window of `n` items to avoid blocking
- */
 window.Qwaterfall = function(fns, arg) {
     var p = Q.when(arg);
 
